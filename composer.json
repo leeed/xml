@@ -13,7 +13,7 @@
     "type": "library",
     "require": {
 		"php": ">=5.5.9",
-        "greenter/core": "^2.1",
+        "greenter/core": "dev-v2.2.4-branch",
         "twig/twig": "~1.0 || ~2.0 || ~3.0"
     },
 	"require-dev": {
@@ -30,5 +30,11 @@
         "psr-4": {
             "Tests\\Greenter\\": "tests/"
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/leeed/core"
+        }
+    ]
 }
