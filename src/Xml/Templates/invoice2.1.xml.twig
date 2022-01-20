@@ -79,9 +79,11 @@
             <cac:PartyIdentification>
                 <cbc:ID schemeID="6">{{ emp.ruc }}</cbc:ID>
             </cac:PartyIdentification>
+			{% if emp.nombreComercial %}
             <cac:PartyName>
                 <cbc:Name><![CDATA[{{ emp.nombreComercial|raw }}]]></cbc:Name>
             </cac:PartyName>
+			{% endif %}
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName><![CDATA[{{ emp.razonSocial|raw }}]]></cbc:RegistrationName>
                 {% set addr = emp.address %}
@@ -211,12 +213,14 @@
     {% if doc.detraccion %}
     {% set detr = doc.detraccion %}
     <cac:PaymentMeans>
+        <cbc:ID>Detraccion</cbc:ID>
         <cbc:PaymentMeansCode>{{ detr.codMedioPago }}</cbc:PaymentMeansCode>
         <cac:PayeeFinancialAccount>
             <cbc:ID>{{ detr.ctaBanco }}</cbc:ID>
         </cac:PayeeFinancialAccount>
     </cac:PaymentMeans>
     <cac:PaymentTerms>
+        <cbc:ID>Detraccion</cbc:ID>
         <cbc:PaymentMeansID>{{ detr.codBienDetraccion }}</cbc:PaymentMeansID>
         <cbc:PaymentPercent>{{ detr.percent }}</cbc:PaymentPercent>
         <cbc:Amount currencyID="PEN">{{ detr.mount|n_format }}</cbc:Amount>
@@ -227,6 +231,25 @@
         <cbc:ID>Percepcion</cbc:ID>
         <cbc:Amount currencyID="PEN">{{ doc.perception.mtoTotal|n_format }}</cbc:Amount>
     </cac:PaymentTerms>
+    {% endif %}
+    {% if doc.formaPago %}
+    <cac:PaymentTerms>
+        <cbc:ID>FormaPago</cbc:ID>
+        <cbc:PaymentMeansID>{{ doc.formaPago.tipo }}</cbc:PaymentMeansID>
+        {% if doc.formaPago.monto %}
+        <cbc:Amount currencyID="{{ doc.formaPago.moneda|default(doc.tipoMoneda) }}">{{ doc.formaPago.monto }}</cbc:Amount>
+        {% endif %}
+    </cac:PaymentTerms>
+    {% endif %}
+    {% if doc.cuotas %}
+    {% for cuota in doc.cuotas %}
+    <cac:PaymentTerms>
+        <cbc:ID>FormaPago</cbc:ID>
+        <cbc:PaymentMeansID>Cuota{{ "%03d"|format(loop.index) }}</cbc:PaymentMeansID>
+        <cbc:Amount currencyID="{{ cuota.moneda|default(doc.tipoMoneda) }}">{{ cuota.monto }}</cbc:Amount>
+        <cbc:PaymentDueDate>{{ cuota.fechaPago|date('Y-m-d') }}</cbc:PaymentDueDate>
+    </cac:PaymentTerms>
+    {% endfor %}
     {% endif %}
     {% if doc.anticipos %}
     {% for ant in doc.anticipos %}
@@ -389,19 +412,19 @@
     </cac:TaxTotal>
     <cac:LegalMonetaryTotal>
         <cbc:LineExtensionAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.valorVenta|n_format }}</cbc:LineExtensionAmount>
-        {% if doc.subTotal %}
+        {% if doc.subTotal is not null %}
         <cbc:TaxInclusiveAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.subTotal|n_format }}</cbc:TaxInclusiveAmount>
         {% endif %}
-        {% if doc.mtoDescuentos %}
-        <cbc:AllowanceTotalAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.mtoDescuentos|n_format }}</cbc:AllowanceTotalAmount>
+        {% if doc.sumOtrosDescuentos is not null %}
+        <cbc:AllowanceTotalAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.sumOtrosDescuentos|n_format }}</cbc:AllowanceTotalAmount>
         {% endif %}
-        {% if doc.sumOtrosCargos %}
+        {% if doc.sumOtrosCargos is not null %}
         <cbc:ChargeTotalAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.sumOtrosCargos|n_format }}</cbc:ChargeTotalAmount>
         {% endif %}
-        {% if doc.totalAnticipos %}
+        {% if doc.totalAnticipos is not null %}
         <cbc:PrepaidAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.totalAnticipos|n_format }}</cbc:PrepaidAmount>
         {% endif %}
-        {% if doc.redondeo %}
+        {% if doc.redondeo is not null %}
         <cbc:PayableRoundingAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.redondeo|n_format }}</cbc:PayableRoundingAmount>
         {% endif %}
         <cbc:PayableAmount currencyID="{{ doc.tipoMoneda }}">{{ doc.mtoImpVenta|n_format }}</cbc:PayableAmount>
@@ -494,9 +517,9 @@
             {% if detail.icbper %}
             <cac:TaxSubtotal>
                 <cbc:TaxAmount currencyID="{{ doc.tipoMoneda }}">{{ detail.icbper|n_format }}</cbc:TaxAmount>
-                <cbc:BaseUnitMeasure unitCode="{{ detail.unidad }}">{{ detail.cantidad }}</cbc:BaseUnitMeasure>
-                <cbc:PerUnitAmount currencyID="{{ doc.tipoMoneda }}">{{ detail.factorIcbper|n_format }}</cbc:PerUnitAmount>
+                <cbc:BaseUnitMeasure unitCode="NIU">{{ detail.cantidad }}</cbc:BaseUnitMeasure>
                 <cac:TaxCategory>
+                    <cbc:PerUnitAmount currencyID="{{ doc.tipoMoneda }}">{{ detail.factorIcbper|n_format }}</cbc:PerUnitAmount>
                     <cac:TaxScheme>
                         <cbc:ID>7152</cbc:ID>
                         <cbc:Name>ICBPER</cbc:Name>
